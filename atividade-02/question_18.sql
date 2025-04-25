@@ -6,8 +6,8 @@ with maria as(
 		ap.cod_cat
 	from
 		hospede h
-	join hospedagem ho
-		on h.cod_hosp = ho.cod_hosp
+	join reserva r
+		on h.cod_hosp = r.cod_hosp
 	join apto ap
 		on ho.num = ap.num
 	group by
