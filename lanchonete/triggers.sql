@@ -1,17 +1,24 @@
 --- Criando trigger para verificar se cliente existe
-CREATE or replace FUNCTION verificar_cliente()
-RETURNS TRIGGER as $$
-BEGIN
-	if not EXISTS (SELECT 1 from cliente WHERE cod_cli = new.cod_cli) THEN
-    	RAISE EXCEPTION 'Cliente não encontrado!';
-    ELSE THEN
-    	RAISE NOTICE 'Cliente encontrado com sucesso!'
-    END if;
-    RETURN new;
-end;
-$$ LANGUAGE plpgsql;
+create or replace function verificar_cliente()
+returns trigger as $$
+begin
+	if not exists (select 1 from cliente as c where c.cod_cli = new.cod_cli) then
+		raise exception 'Cliente não está registrado no banco.';
+	else
+		raise notice 'Cliente encontrado com o sucesso';
+	end if;
+	return new;
 
-CREATE TRIGGER trg_verificar_cliente
-BEFORE INSERT or UPDATE on venda
-for EACH row
-EXECUTE FUNCTION verificar_cliente();
+end;
+$$ language plpgsql;
+
+create trigger trg_verificar_cliente
+before insert or update on venda
+for each row
+execute function verificar_cliente();
+
+--- Teste do trigger acima.
+insert into venda(cod_cli, dt_venda,vl_total) 
+values (10, '2021-02-01', 3.0);
+
+
