@@ -21,4 +21,27 @@ execute function verificar_cliente();
 insert into venda(cod_cli, dt_venda,vl_total) 
 values (10, '2021-02-01', 3.0);
 
+--- Criando trigger para verificar se existir algum produto com o mesmo cod_prod
+create or replace function verificar_cod_prod()
+returns trigger as $$
+begin
+    -- Verifica se já existe outro produto com o mesmo código
+    if exists (
+        select 1 
+        from produto 
+        where cod_prod = new.cod_prod
+        and (tg_op = 'INSERT' or cod_prod <> old.cod_prod)
+    ) then
+        raise exception 'Esse código de produto já está sendo utilizado.';
+    else
+        raise notice 'Esse código de produto é válido.';
+    end if;
 
+    return new; -- necessário para que o INSERT ou UPDATE continue
+end;
+$$ language plpgsql;
+
+create trigger trg_verificar_cod_prod
+before insert or update on produto
+for each row
+execute function verificar_cod_prod();
