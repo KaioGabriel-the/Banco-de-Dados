@@ -71,3 +71,36 @@ CREATE TRIGGER trg_verificar_cod_cli
 BEFORE INSERT OR UPDATE ON cliente
 FOR EACH ROW
 EXECUTE FUNCTION verificar_cod_cli();
+
+
+---Atualizar a tabela venda
+CREATE OR REPLACE FUNCTION atualizar_tb_venda()
+RETURNS TRIGGER AS $$
+DECLARE
+    cod_venda INT;
+BEGIN
+    -- Pega o cod_ven dependendo da operação
+    IF (TG_OP = 'DELETE') THEN
+        cod_venda := OLD.cod_ven;
+    ELSE
+        cod_venda := NEW.cod_ven;
+    END IF;
+
+    -- Atualiza o valor total da venda recalculando tudo com base na item_venda
+    UPDATE venda
+    SET vl_total = (
+        SELECT COALESCE(SUM(itv.qtd_vendida * p.valor), 0)
+        FROM item_venda itv
+        JOIN produto p ON p.cod_prod = itv.cod_prod
+        WHERE itv.cod_ven = cod_venda
+    )
+    WHERE cod_ven = cod_venda;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_atualizar_tb_venda
+AFTER INSERT OR UPDATE OR DELETE ON item_venda
+FOR EACH ROW
+EXECUTE FUNCTION atualizar_tb_venda();
