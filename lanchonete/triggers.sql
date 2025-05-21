@@ -45,3 +45,29 @@ create trigger trg_verificar_cod_prod
 before insert or update on produto
 for each row
 execute function verificar_cod_prod();
+
+/* Trigger que verifica antes do INSERT ou UPDATE se o cod_cli está em uso */
+
+CREATE OR REPLACE FUNCTION verificar_cod_cli()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Verifica se já existe outro registro com o mesmo cod_cli
+    IF EXISTS (
+        SELECT 1 
+        FROM cliente AS cli 
+        WHERE cli.cod_cli = NEW.cod_cli 
+          AND (TG_OP = 'INSERT' OR cli.cod_cli <> OLD.cod_cli)
+    ) THEN
+        RAISE EXCEPTION 'Esse código de cliente está em uso.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_verificar_cod_cli ON cliente;
+
+CREATE TRIGGER trg_verificar_cod_cli
+BEFORE INSERT OR UPDATE ON cliente
+FOR EACH ROW
+EXECUTE FUNCTION verificar_cod_cli();
